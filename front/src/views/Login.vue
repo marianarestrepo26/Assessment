@@ -33,18 +33,15 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import api from '../api'
+import { localApi } from '../localApi'
 
 const email = ref('')
 const password = ref('')
 const error = ref('')
-const router = useRouter()
 
 const handleLogin = async () => {
     try {
-        const res = await api.post('/auth/login', { email: email.value, password: password.value })
-        localStorage.setItem('token', res.data.token)
+        localApi.login(email.value, password.value)
         window.location.href = '/courses'
     } catch (e) {
         error.value = 'Invalid Credentials'

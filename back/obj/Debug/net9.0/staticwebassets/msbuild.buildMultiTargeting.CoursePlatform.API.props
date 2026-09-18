@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="../build/CoursePlatform.API.props" />
-</Project>

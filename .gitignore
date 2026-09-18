@@ -1,0 +1,18 @@
+# .NET
+back/bin/
+back/obj/
+back/CoursePlatform.Tests/bin/
+back/CoursePlatform.Tests/obj/
+*.user
+
+# Node
+front/node_modules/
+front/dist/
+
+# Secrets
+back/appsettings.Local.json
+back/appsettings.*.Local.json
+
+# IDE
+.idea/
+.vs/

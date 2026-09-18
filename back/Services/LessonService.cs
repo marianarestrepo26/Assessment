@@ -34,9 +34,28 @@ namespace CoursePlatform.API.Services
         {
             var lesson = await _context.Lessons.FindAsync(id);
             if (lesson == null) throw new Exception("Not found");
+
+            var siblings = await _context.Lessons
+                .Where(l => l.CourseId == lesson.CourseId && l.Id != lesson.Id && !l.IsDeleted)
+                .ToListAsync();
+
+            var oldOrder = lesson.Order;
+            var newOrder = Math.Clamp(dto.Order, 1, siblings.Count + 1);
+
+            if (newOrder > oldOrder)
+            {
+                foreach (var sibling in siblings.Where(l => l.Order > oldOrder && l.Order <= newOrder))
+                    sibling.Order--;
+            }
+            else if (newOrder < oldOrder)
+            {
+                foreach (var sibling in siblings.Where(l => l.Order >= newOrder && l.Order < oldOrder))
+                    sibling.Order++;
+            }
+
             lesson.Title = dto.Title;
             lesson.Content = dto.Content;
-            lesson.Order = dto.Order;
+            lesson.Order = newOrder;
             lesson.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
         }

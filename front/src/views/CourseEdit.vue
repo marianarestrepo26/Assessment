@@ -103,7 +103,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import api from '../api'
+import { localApi } from '../localApi'
 
 const route = useRoute()
 const course = ref(null)
@@ -114,17 +114,14 @@ const lessonForm = ref({ title: '', content: '', order: 1 })
 
 const load = async () => {
     const id = route.params.id
-    const cRes = await api.get(`/courses/${id}`)
-    course.value = cRes.data
-    
-    const lRes = await api.get(`/lessons/course/${id}`)
-    lessons.value = lRes.data.sort((a,b) => a.order - b.order)
+    course.value = localApi.getCourse(id)
+    lessons.value = localApi.getLessonsByCourse(id).sort((a, b) => a.order - b.order)
 }
 
 const updateCourse = async () => {
-    await api.put(`/courses/${course.value.id}`, { 
-        title: course.value.title, 
-        description: course.value.description 
+    localApi.updateCourse(course.value.id, {
+        title: course.value.title,
+        description: course.value.description
     })
     // Simple visual feedback could be improved with a toast
     const btn = document.activeElement;
@@ -153,53 +150,33 @@ const editLesson = (l) => {
 
 const deleteLesson = async (id) => {
     if(!confirm("¿Eliminar lección?")) return
-    await api.delete(`/lessons/${id}`)
+    localApi.deleteLesson(id)
     load()
 }
 
 const saveLesson = async () => {
     try {
         if (editingLesson.value) {
-            await api.put(`/lessons/${editingLesson.value.id}`, { ...lessonForm.value })
+            localApi.updateLesson(editingLesson.value.id, { ...lessonForm.value })
         } else {
-            await api.post('/lessons', { ...lessonForm.value, courseId: course.value.id })
+            localApi.createLesson({ ...lessonForm.value, courseId: course.value.id })
         }
         closeModal()
         load()
     } catch(e) {
-        alert(e.response?.data || "Error al guardar lección")
+        alert(e.message || "Error al guardar lección")
     }
 }
 
 const moveUp = async (l) => {
     if(l.order <= 1) return;
-    const newOrder = l.order - 1;
-    // Optimistic UI update could be done here, but let's rely on API
-    // We update this lesson to newOrder. The backend logic "should" handle conflicts if we implemented "swap".
-    // BUT, the current backend logic pushes *others* down. 
-    // To implement strict SWAP implies finding the neighbor.
-    // Let's rely on the Update logic we just wrote: "Insert at X, shift others down". 
-    // If I move 3 -> 2. The lesson at 2 becomes 3. 
-    // The backend logic: updating Lesson(3) to Order(2). 
-    // Conflict? Yes, Lesson(2) exists.
-    // Shift logic: Lesson(2) and greater +1. So Lesson(2) -> 3. Lesson(3) is now 2. 
-    // Result: 2 became 3, 3 became 2. Swap successful!
-    
-    await api.put(`/lessons/${l.id}`, { ...l, order: newOrder })
+    localApi.updateLesson(l.id, { ...l, order: l.order - 1 })
     load()
 }
 
 const moveDown = async (l) => {
     if(l.order >= lessons.value.length) return;
-    const newOrder = l.order + 1;
-    // If I move 2 -> 3. Lesson at 3 exists.
-    // Conflict? Yes. Lesson(3) shifts to 4. 
-    // But wait, the lesson I'm moving was 2. So now we have gap at 2?
-    // The backend logic is simple "Insert logic". It doesn't "fill gaps" left behind.
-    // However, for simple UI reordering up/down, standard swap is better. 
-    // But since user asked "si cambio la orden aqui se acomoden las otras", the insert logic is what represents that best.
-    
-    await api.put(`/lessons/${l.id}`, { ...l, order: newOrder })
+    localApi.updateLesson(l.id, { ...l, order: l.order + 1 })
     load()
 }
 

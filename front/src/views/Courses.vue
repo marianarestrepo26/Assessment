@@ -98,18 +98,15 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import api from '../api'
-import { useRouter } from 'vue-router'
+import { localApi } from '../localApi'
 
 const courses = ref([])
 const filterStatus = ref('')
-const router = useRouter()
 const showCreateModal = ref(false)
 const newCourseTitle = ref('')
 
 const loadCourses = async () => {
-    const res = await api.get(`/courses/search?status=${filterStatus.value}`)
-    courses.value = res.data
+    courses.value = localApi.getCourses(filterStatus.value)
 }
 
 const openCreateModal = () => {
@@ -119,28 +116,28 @@ const openCreateModal = () => {
 
 const createCourse = async () => {
     if (!newCourseTitle.value) return
-    await api.post('/courses', { title: newCourseTitle.value, description: '' })
+    localApi.createCourse({ title: newCourseTitle.value, description: '' })
     showCreateModal.value = false
     loadCourses()
 }
 
 const deleteCourse = async (id) => {
     if(!confirm("¿Estás seguro de eliminar este curso?")) return;
-    await api.delete(`/courses/${id}`)
+    localApi.deleteCourse(id)
     loadCourses()
 }
 
 const publish = async (id) => {
     try {
-        await api.patch(`/courses/${id}/publish`)
+        localApi.publishCourse(id)
         loadCourses()
     } catch(e) {
-        alert(e.response?.data || "Error al publicar")
+        alert(e.message || "Error al publicar")
     }
 }
 
 const unpublish = async (id) => {
-    await api.patch(`/courses/${id}/unpublish`)
+    localApi.unpublishCourse(id)
     loadCourses()
 }
 
